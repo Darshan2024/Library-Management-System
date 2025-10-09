@@ -1,0 +1,8 @@
+services:
+  librarysystem:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: librarymanagementsystem
+    ports:
+      - 8082:8082
