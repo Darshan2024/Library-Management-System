@@ -5,7 +5,7 @@ COPY pom.xml .
 RUN mvn -q -B dependency:go-offline
 
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -B clean package
+RUN --mount=type=cache,target=/root/.m2 mvn clean package  -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine
 
