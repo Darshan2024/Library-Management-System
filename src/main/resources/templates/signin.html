@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
+</head>
+<body>
+    <main>
+        <div class = "p-4 bg-white border rounded-3" style="max-width:480px">
+            <h2 class="mb-3">Sign In</h2>
+            <form method="post" th:action = "@{/signin}">
+                <div class = "mb-3">
+                    <label class="form-label">Enter your name</label>
+                    <input name="username" class="form-control" placeholder="e.g., user 1" required />
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Continue</button>
+
+            </form>
+
+        </div>
+    </main>
+    <script th:src="@{/js/bootstrap.js}"></script>
+</body>
+</html>
