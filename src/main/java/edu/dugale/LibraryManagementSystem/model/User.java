@@ -22,6 +22,8 @@ public class User {
     @NotNull
     @Size(min = 2, message = "Username must be at least 2 characters long")
     private String name;
+    private String password;
+    
     @ElementCollection
     private List<UUID> borrowedBooks;
 
@@ -30,8 +32,9 @@ public class User {
         borrowedBooks = new ArrayList<>();
     }
 
-    public User(String name) {
+    public User(String name, String password) {
         this.name = name;
+        this.password = password;
         borrowedBooks = new ArrayList<>();
     }
 
@@ -41,6 +44,10 @@ public class User {
 
     public String getName() {
         return name;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public List<UUID> getBorrowedBooks() {

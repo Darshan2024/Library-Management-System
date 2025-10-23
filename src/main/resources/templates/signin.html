@@ -1,26 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In</title>
+    <meta charset="UTF-8" />
+    <title>Sign in</title>
     <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
 </head>
-<body>
-    <main>
-        <div class = "p-4 bg-white border rounded-3" style="max-width:480px">
-            <h2 class="mb-3">Sign In</h2>
-            <form method="post" th:action = "@{/signin}">
-                <div class = "mb-3">
-                    <label class="form-label">Enter your name</label>
-                    <input name="username" class="form-control" placeholder="e.g., user 1" required />
-                </div>
-                <button class="btn btn-primary w-100" type="submit">Continue</button>
 
-            </form>
+<body class="container py-4">
+    <h2 class="mb-3">Library — Sign in</h2>
 
+    <form th:action="@{/signin}" method="post">
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input class="form-control" type="text" name="username" required />
         </div>
-    </main>
-    <script th:src="@{/js/bootstrap.js}"></script>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" name="password" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+
+    <p class="text-danger mt-3" th:if="${param.error}">Invalid username or password.</p>
+    <p class="text-success mt-1" th:if="${param.logout}">You have been signed out.</p>
 </body>
+
 </html>

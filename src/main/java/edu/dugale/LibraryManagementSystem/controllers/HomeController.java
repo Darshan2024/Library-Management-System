@@ -9,10 +9,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class HomeController {
-    @GetMapping("/")
-    public String home() {
-        return "home";
-    }
 
     @GetMapping("/signin")
     public String signin(Model model){
@@ -24,6 +20,6 @@ public class HomeController {
         session.setAttribute(
             "username", username);
         redirectAttrs.addFlashAttribute("username", username);
-        return "redirect:/books";
+        return "redirect:/";
     }
 }

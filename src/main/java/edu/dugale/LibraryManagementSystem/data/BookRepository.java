@@ -1,11 +1,16 @@
+// src/main/java/edu/dugale/LibraryManagementSystem/data/BookRepository.java
 package edu.dugale.LibraryManagementSystem.data;
 
-import org.springframework.data.repository.CrudRepository;
 import edu.dugale.LibraryManagementSystem.model.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.*;
+import java.util.List;
 
-public interface BookRepository extends CrudRepository<Book, Long> {
+public interface BookRepository
+        extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
+
+    // keep your existing derived queries (optional, used elsewhere)
     List<Book> findByTitleContainingIgnoreCase(String q);
 
     List<Book> findByAuthorsContainingIgnoreCase(String q);
