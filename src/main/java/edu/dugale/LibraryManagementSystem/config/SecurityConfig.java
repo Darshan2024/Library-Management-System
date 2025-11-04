@@ -22,7 +22,7 @@ public class SecurityConfig {
           )
           .formLogin(form -> form
               .loginPage("/signin")          // serve page
-              .loginProcessingUrl("/signin") // process POST here (keeps your path)
+              .loginProcessingUrl("/signin") // process POST here 
               .defaultSuccessUrl("/", true)
               .permitAll()
           )

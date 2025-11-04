@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>My Books</title>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+<body>
+<header class="container">
+    <h2>My Borrowed Books</h2>
+    <div style="margin: 12px 0;">
+        <form th:action="@{/my/books/extend-all}" method="post" style="display:inline;">
+            <button type="submit"
+                    th:disabled="${!canExtendAll}"
+                    class="btn btn-primary">
+                Extend all
+            </button>
+        </form>
+        <a th:href="@{/}" class="btn btn-link">Back to catalog</a>
+    </div>
+
+    <div th:if="${param.extended}">
+        <div class="alert alert-success">Extended loan #[[${param.extended}]].</div>
+    </div>
+    <div th:if="${param.extendedAll}">
+        <div class="alert alert-success">Extended [[${param.extendedAll}]] loans.</div>
+    </div>
+    <div th:if="${param.returned}">
+        <div class="alert alert-success">Returned loan #[[${param.returned}]].</div>
+    </div>
+    <div th:if="${param.error}">
+        <div class="alert alert-danger">Action failed: [[${param.error}]].</div>
+    </div>
+</header>
+
+<main class="container">
+    <table class="table" style="width:100%; border-collapse: collapse;">
+        <thead>
+        <tr>
+            <th style="text-align:left;">Title</th>
+            <th style="text-align:left;">Authors</th>
+            <th style="text-align:left;">Borrowed On</th>
+            <th style="text-align:left;">Due Date</th>
+            <th style="text-align:left;">Renewals</th>
+            <th style="text-align:left;">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- iterate over 'rows' instead of 'loans' -->
+        <tr th:each="row : ${rows}">
+            <td th:text="${row.book != null ? row.book.title : ('#' + row.loan.bookId)}">Title</td>
+            <td th:text="${row.book != null ? row.book.authors : ''}">Authors</td>
+            <td th:text="${#temporals.format(row.loan.borrowedAt, 'yyyy-MM-dd')}">2025-01-01</td>
+            <td th:text="${row.loan.dueDate != null ? row.loan.dueDate : '—'}">—</td>
+            <td th:text="${row.loan.renewals != null ? row.loan.renewals : 0}">0</td>
+            <td>
+                <form th:action="@{|/my/books/${row.loan.id}/extend|}" method="post" style="display:inline;">
+                    <button type="submit"
+                            th:disabled="${row.loan.returnedAt != null}"
+                            class="btn btn-sm btn-outline-primary">Extend</button>
+                </form>
+                <form th:action="@{|/my/books/${row.loan.id}/return|}" method="post" style="display:inline; margin-left:6px;">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Return</button>
+                </form>
+            </td>
+        </tr>
+
+        <!-- Show this when rows list is empty -->
+        <tr th:if="${#lists.isEmpty(rows)}">
+            <td colspan="6" style="text-align:center; padding: 12px;">No borrowed books.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

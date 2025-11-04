@@ -10,7 +10,6 @@ import java.util.List;
 public interface BookRepository
         extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
 
-    // keep your existing derived queries (optional, used elsewhere)
     List<Book> findByTitleContainingIgnoreCase(String q);
 
     List<Book> findByAuthorsContainingIgnoreCase(String q);
