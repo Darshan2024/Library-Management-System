@@ -76,20 +76,28 @@ public class BookController {
             @RequestParam(value = "size", required = false, defaultValue = "25") int size,
             Model model) {
 
+        // Header username + per-user context for holds/borrowed
         String uname = currentUsername();
-         if (uname != null) {
-        model.addAttribute("username", uname);
-        var user = userRepository.findByName(uname).orElse(null);
-        if (user != null) {
-            // get IDs of books currently borrowed by this user
-            var myActiveBookIds = loanRepository
-                    .findByUserIdAndReturnedAtIsNull(user.getId())
-                    .stream()
-                    .map(Loan::getBookId)
-                    .toList();
-            model.addAttribute("myActiveBookIds", myActiveBookIds);
+        if (uname != null) {
+            model.addAttribute("username", uname);
+            userRepository.findByName(uname).ifPresent(u -> {
+                // active loans -> disable "Place hold" if already borrowed
+                var myActiveBookIds = loanRepository.findByUserIdAndReturnedAtIsNull(u.getId())
+                        .stream().map(Loan::getBookId).toList();
+                model.addAttribute("myActiveBookIds", myActiveBookIds);
+
+                // active holds -> show "Remove hold" (bookId -> waitlistEntryId)
+                var myHolds = waitlistRepository.findByUserIdAndActiveTrueOrderByCreatedAtAsc(u.getId());
+                var myHoldEntryIdByBookId = myHolds.stream().collect(
+                        java.util.stream.Collectors.toMap(
+                                edu.dugale.LibraryManagementSystem.model.WaitlistEntry::getBookId,
+                                edu.dugale.LibraryManagementSystem.model.WaitlistEntry::getId,
+                                (a, b) -> a));
+                model.addAttribute("myHoldEntryIdByBookId", myHoldEntryIdByBookId);
+            });
         }
-    }
+
+        // Build spec
         Specification<Book> spec = Specification.where(null);
         var s1 = BookSpecifications.containsText(q);
         if (s1 != null)
@@ -104,23 +112,7 @@ public class BookController {
         if (s4 != null)
             spec = spec.and(s4);
 
-        Sort springSort = switch (sort) {
-            case "newest" -> Sort.by(Sort.Direction.DESC, "published");
-            case "title" -> Sort.by(Sort.Direction.ASC, "title");
-            default -> Sort.unsorted();
-        };
-
-        PageRequest pageable = PageRequest.of(page, size, springSort);
-        Page<Book> results = bookRepository.findAll(spec, pageable);
-
-        var holdCounts = results.getContent().stream()
-                .collect(Collectors.toMap(Book::getId, b -> waitlistRepository.countByBookIdAndActiveTrue(b.getId())));
-        model.addAttribute("holdCounts", holdCounts);
-
-        model.addAttribute("books", results.getContent());
-        model.addAttribute("page", results);
-        model.addAttribute("count", results.getTotalElements());
-
+        // echo filters
         model.addAttribute("q", q == null ? "" : q.trim());
         model.addAttribute("author", author == null ? "" : author.trim());
         model.addAttribute("available", onlyAvailable != null && onlyAvailable);
@@ -134,6 +126,35 @@ public class BookController {
                 (yearFrom != null) ||
                 (yearTo != null);
         model.addAttribute("hasQuery", hasQuery);
+
+        // Do NOT show results until there is a query/filter
+        if (!hasQuery) {
+            model.addAttribute("books", java.util.List.of());
+            model.addAttribute("page", null);
+            model.addAttribute("count", 0L);
+            return "books";
+        }
+
+        // Sorting
+        Sort springSort = switch (sort) {
+            case "newest" -> Sort.by(Sort.Direction.DESC, "published");
+            case "title" -> Sort.by(Sort.Direction.ASC, "title");
+            default -> Sort.unsorted();
+        };
+
+        var pageable = PageRequest.of(page, size, springSort);
+        var results = bookRepository.findAll(spec, pageable);
+
+        model.addAttribute("books", results.getContent());
+        model.addAttribute("page", results);
+        model.addAttribute("count", results.getTotalElements());
+
+        // Optional: queue sizes next to Hold button
+        var holdCounts = results.getContent().stream().collect(
+                java.util.stream.Collectors.toMap(
+                        Book::getId,
+                        b -> waitlistRepository.countByBookIdAndActiveTrue(b.getId())));
+        model.addAttribute("holdCounts", holdCounts);
 
         return "books";
     }
@@ -191,41 +212,41 @@ public class BookController {
         return "redirect:/?holdCancelled=" + entryId;
     }
 
-    
-@PostMapping("/my/books/{loanId}/return")
-@Transactional
-public String returnOne(@PathVariable Long loanId) {
-    var user = currentUserOrThrow();
-    var opt = loanRepository.findByIdAndUserIdAndReturnedAtIsNull(loanId, user.getId());
-    if (opt.isEmpty()) return "redirect:/my/books?error=notfound";
+    @PostMapping("/my/books/{loanId}/return")
+    @Transactional
+    public String returnOne(@PathVariable Long loanId) {
+        var user = currentUserOrThrow();
+        var opt = loanRepository.findByIdAndUserIdAndReturnedAtIsNull(loanId, user.getId());
+        if (opt.isEmpty())
+            return "redirect:/my/books?error=notfound";
 
-    Loan loan = opt.get();
-    loan.setReturnedNow();
-    loanRepository.save(loan);
+        Loan loan = opt.get();
+        loan.setReturnedNow();
+        loanRepository.save(loan);
 
-    Long bookId = loan.getBookId();
+        Long bookId = loan.getBookId();
 
-    // Find next in queue
-    var nextOpt = waitlistRepository.findFirstByBookIdAndActiveTrueOrderByCreatedAtAsc(bookId);
-    if (nextOpt.isPresent()) {
-        var next = nextOpt.get();
-        // create a loan for next user and keep the book unavailable
-        loanRepository.save(new Loan(next.getUserId(), bookId));
-        next.setActive(false);
-        waitlistRepository.save(next);
-        // ensure the book stays unavailable
-        bookRepository.findById(bookId).ifPresent(b -> {
-            b.setAvailable(false);
-            bookRepository.save(b);
-        });
-    } else {
-        // no one waiting → make it available
-        bookRepository.findById(bookId).ifPresent(b -> {
-            b.setAvailable(true);
-            bookRepository.save(b);
-        });
+        // Find next in queue
+        var nextOpt = waitlistRepository.findFirstByBookIdAndActiveTrueOrderByCreatedAtAsc(bookId);
+        if (nextOpt.isPresent()) {
+            var next = nextOpt.get();
+            // create a loan for next user and keep the book unavailable
+            loanRepository.save(new Loan(next.getUserId(), bookId));
+            next.setActive(false);
+            waitlistRepository.save(next);
+            // ensure the book stays unavailable
+            bookRepository.findById(bookId).ifPresent(b -> {
+                b.setAvailable(false);
+                bookRepository.save(b);
+            });
+        } else {
+            // no one waiting → make it available
+            bookRepository.findById(bookId).ifPresent(b -> {
+                b.setAvailable(true);
+                bookRepository.save(b);
+            });
+        }
+        return "redirect:/my/books?returned=" + loanId;
     }
-    return "redirect:/my/books?returned=" + loanId;
-}
 
 }
