@@ -16,27 +16,30 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-          .authorizeHttpRequests(auth -> auth
-              .requestMatchers("/signin", "/css/**", "/","/js/**").permitAll()
-              .anyRequest().authenticated()
-          )
-          .formLogin(form -> form
-              .loginPage("/signin")          // serve page
-              .loginProcessingUrl("/signin") // process POST here 
-              .defaultSuccessUrl("/", true)
-              .permitAll()
-          )
-          .logout(logout -> logout
-              .logoutSuccessUrl("/signin?logout")
-              .permitAll()
-          )
-          .csrf(Customizer.withDefaults());
+                .authorizeHttpRequests(auth -> auth
+                        // allow H2 console + static + signin + home
+                        .requestMatchers("/h2-console/**", "/signin", "/css/**", "/js/**", "/").permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(form -> form
+                        .loginPage("/signin")
+                        .loginProcessingUrl("/signin")
+                        .defaultSuccessUrl("/", true)
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/signin?logout")
+                        .permitAll())
+                // allow H2 console to load in a frame
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                // disable CSRF just for H2 console endpoints
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"));
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     public DaoAuthenticationProvider authProvider(
